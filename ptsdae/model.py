@@ -36,7 +36,7 @@ def train(dataset: torch.utils.data.Dataset,
     :param scheduler: scheduler to use, or None to disable, defaults to None
     :param corruption: proportion of masking corruption to apply, set to None to disable, defaults to None
     :param validation: instance of Dataset to use for validation, set to None to disable, defaults to None
-    :param cuda: whether CUDA is used, defaults to True
+    :param device: CUDA/CPU device is used, defaults to cuda
     :param sampler: sampler to use in the DataLoader, set to None to disable, defaults to None
     :param silent: set to True to prevent printing out summary statistics, defaults to False
     :param update_freq: frequency of batches with which to update counter, set to None disables, default 1
@@ -84,8 +84,7 @@ def train(dataset: torch.utils.data.Dataset,
         for index, batch in enumerate(data_iterator):
             if isinstance(batch, tuple) or isinstance(batch, list) and len(batch) in [1, 2]:
                 batch = batch[0]
-            # if cuda:
-            #     batch = batch.cuda(non_blocking=True)
+
             batch = batch.to(device, non_blocking=True)
             # run the batch through the autoencoder and obtain the output
             if corruption is not None:
@@ -120,9 +119,6 @@ def train(dataset: torch.utils.data.Dataset,
                     else:
                         validation_inputs.append(val_batch)
                 validation_actual = torch.cat(validation_inputs)
-                # if cuda:
-                #     validation_actual = validation_actual.cuda(non_blocking=True)
-                #     validation_output = validation_output.cuda(non_blocking=True)
                 validation_actual = validation_actual.to(device)
                 validation_output = validation_output.to(device)
                 validation_loss = loss_function(validation_output, validation_actual)
@@ -178,7 +174,7 @@ def pretrain(dataset,
     :param optimizer: function taking model and returning optimizer
     :param scheduler: function taking optimizer and returning scheduler, or None to disable
     :param validation: instance of Dataset to use for validation
-    :param cuda: whether CUDA is used, defaults to True
+    :param device: CUDA/CPU device is used, defaults to cuda
     :param sampler: sampler to use in the DataLoader, defaults to None
     :param silent: set to True to prevent printing out summary statistics, defaults to False
     :param update_freq: frequency of batches with which to update counter, None disables, default 1
@@ -204,8 +200,7 @@ def pretrain(dataset,
             activation=torch.nn.ReLU() if index != (number_of_subautoencoders - 1) else None,
             corruption=nn.Dropout(corruption) if corruption is not None else None,
         )
-        # if cuda:
-        #     sub_autoencoder = sub_autoencoder.cuda()
+
         sub_autoencoder = sub_autoencoder.to(device)
         ae_optimizer = optimizer(sub_autoencoder)
         ae_scheduler = scheduler(ae_optimizer) if scheduler is not None else scheduler
@@ -267,7 +262,7 @@ def predict(dataset: torch.utils.data.Dataset,
     :param dataset: evaluation Dataset
     :param model: autoencoder for prediction
     :param batch_size: batch size
-    :param cuda: whether CUDA is used, defaults to True
+    :param device: CUDA/CPU device is used, defaults to cuda
     :param silent: set to True to prevent printing out summary statistics, defaults to False
     :param encode: whether to encode or use the full autoencoder
     :return: predicted features from the Dataset
@@ -290,8 +285,7 @@ def predict(dataset: torch.utils.data.Dataset,
     for index, batch in enumerate(data_iterator):
         if isinstance(batch, tuple) or isinstance(batch, list) and len(batch) in [1, 2]:
             batch = batch[0]
-        # if cuda:
-        #     batch = batch.cuda(non_blocking=True)
+
         batch = batch.to(device, non_blocking=True)
         batch = batch.squeeze(1).view(batch.size(0), -1)
         if encode:
