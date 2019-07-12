@@ -17,7 +17,7 @@ def train(dataset: torch.utils.data.Dataset,
           scheduler: Any = None,
           validation: Optional[torch.utils.data.Dataset] = None,
           corruption: Optional[float] = None,
-          cuda: bool = True,
+          device: str = 'cuda',
           sampler: Optional[torch.utils.data.sampler.Sampler] = None,
           silent: bool = False,
           update_freq: Optional[int] = 1,
@@ -84,8 +84,9 @@ def train(dataset: torch.utils.data.Dataset,
         for index, batch in enumerate(data_iterator):
             if isinstance(batch, tuple) or isinstance(batch, list) and len(batch) in [1, 2]:
                 batch = batch[0]
-            if cuda:
-                batch = batch.cuda(non_blocking=True)
+            # if cuda:
+            #     batch = batch.cuda(non_blocking=True)
+            batch.to(device)
             # run the batch through the autoencoder and obtain the output
             if corruption is not None:
                 output = autoencoder(F.dropout(batch, corruption))
@@ -108,7 +109,7 @@ def train(dataset: torch.utils.data.Dataset,
                     validation,
                     autoencoder,
                     batch_size,
-                    cuda=cuda,
+                    device=device,
                     silent=True,
                     encode=False
                 )
@@ -119,9 +120,11 @@ def train(dataset: torch.utils.data.Dataset,
                     else:
                         validation_inputs.append(val_batch)
                 validation_actual = torch.cat(validation_inputs)
-                if cuda:
-                    validation_actual = validation_actual.cuda(non_blocking=True)
-                    validation_output = validation_output.cuda(non_blocking=True)
+                # if cuda:
+                #     validation_actual = validation_actual.cuda(non_blocking=True)
+                #     validation_output = validation_output.cuda(non_blocking=True)
+                validation_actual.to(device)
+                validation_output.to(device)
                 validation_loss = loss_function(validation_output, validation_actual)
                 # validation_accuracy = pretrain_accuracy(validation_output, validation_actual)
                 validation_loss_value = float(validation_loss.item())
@@ -155,7 +158,7 @@ def pretrain(dataset,
              scheduler: Optional[Callable[[torch.optim.Optimizer], Any]] = None,
              validation: Optional[torch.utils.data.Dataset] = None,
              corruption: Optional[float] = None,
-             cuda: bool = True,
+             device: str = 'cuda',
              sampler: Optional[torch.utils.data.sampler.Sampler] = None,
              silent: bool = False,
              update_freq: Optional[int] = 1,
@@ -201,8 +204,9 @@ def pretrain(dataset,
             activation=torch.nn.ReLU() if index != (number_of_subautoencoders - 1) else None,
             corruption=nn.Dropout(corruption) if corruption is not None else None,
         )
-        if cuda:
-            sub_autoencoder = sub_autoencoder.cuda()
+        # if cuda:
+        #     sub_autoencoder = sub_autoencoder.cuda()
+        sub_autoencoder.to(device)
         ae_optimizer = optimizer(sub_autoencoder)
         ae_scheduler = scheduler(ae_optimizer) if scheduler is not None else scheduler
         train(
@@ -214,7 +218,7 @@ def pretrain(dataset,
             validation=current_validation,
             corruption=None,  # already have dropout in the DAE
             scheduler=ae_scheduler,
-            cuda=cuda,
+            device=device,
             sampler=sampler,
             silent=silent,
             update_freq=update_freq,
@@ -231,7 +235,7 @@ def pretrain(dataset,
                     current_dataset,
                     sub_autoencoder,
                     batch_size,
-                    cuda=cuda,
+                    device=device,
                     silent=silent
                 )
             )
@@ -241,7 +245,7 @@ def pretrain(dataset,
                         current_validation,
                         sub_autoencoder,
                         batch_size,
-                        cuda=cuda,
+                        device=device,
                         silent=silent
                     )
                 )
@@ -253,7 +257,7 @@ def pretrain(dataset,
 def predict(dataset: torch.utils.data.Dataset,
             model: torch.nn.Module,
             batch_size: int,
-            cuda: bool = True,
+            device: str = 'cuda',
             silent: bool = False,
             encode: bool = True) -> torch.Tensor:
     """
@@ -286,8 +290,9 @@ def predict(dataset: torch.utils.data.Dataset,
     for index, batch in enumerate(data_iterator):
         if isinstance(batch, tuple) or isinstance(batch, list) and len(batch) in [1, 2]:
             batch = batch[0]
-        if cuda:
-            batch = batch.cuda(non_blocking=True)
+        # if cuda:
+        #     batch = batch.cuda(non_blocking=True)
+        batch.to(device)
         batch = batch.squeeze(1).view(batch.size(0), -1)
         if encode:
             output = model.encode(batch)
