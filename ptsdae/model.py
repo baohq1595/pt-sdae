@@ -86,7 +86,11 @@ def train(dataset: torch.utils.data.Dataset,
                 batch = batch[0]
             # if cuda:
             #     batch = batch.cuda(non_blocking=True)
-            batch.to(device)
+            if len(batch) == 2:
+                batch[0].to(device, non_blocking=True)
+                batch[1].to(device, non_blocking=True)
+            else:
+                batch.to(device, non_blocking=True)
             # run the batch through the autoencoder and obtain the output
             if corruption is not None:
                 output = autoencoder(F.dropout(batch, corruption))
@@ -292,7 +296,11 @@ def predict(dataset: torch.utils.data.Dataset,
             batch = batch[0]
         # if cuda:
         #     batch = batch.cuda(non_blocking=True)
-        batch.to(device)
+        if len(batch) == 2:
+            batch[0].to(device, non_blocking=True)
+            batch[1].to(device, non_blocking=True)
+        else:
+            batch.to(device, non_blocking=True)
         batch = batch.squeeze(1).view(batch.size(0), -1)
         if encode:
             output = model.encode(batch)
