@@ -86,11 +86,7 @@ def train(dataset: torch.utils.data.Dataset,
                 batch = batch[0]
             # if cuda:
             #     batch = batch.cuda(non_blocking=True)
-            if len(batch) == 2:
-                batch[0].to(device, non_blocking=True)
-                batch[1].to(device, non_blocking=True)
-            else:
-                batch.to(device, non_blocking=True)
+            batch = batch.to(device, non_blocking=True)
             # run the batch through the autoencoder and obtain the output
             if corruption is not None:
                 output = autoencoder(F.dropout(batch, corruption))
@@ -127,8 +123,8 @@ def train(dataset: torch.utils.data.Dataset,
                 # if cuda:
                 #     validation_actual = validation_actual.cuda(non_blocking=True)
                 #     validation_output = validation_output.cuda(non_blocking=True)
-                validation_actual.to(device)
-                validation_output.to(device)
+                validation_actual = validation_actual.to(device)
+                validation_output = validation_output.to(device)
                 validation_loss = loss_function(validation_output, validation_actual)
                 # validation_accuracy = pretrain_accuracy(validation_output, validation_actual)
                 validation_loss_value = float(validation_loss.item())
@@ -210,7 +206,7 @@ def pretrain(dataset,
         )
         # if cuda:
         #     sub_autoencoder = sub_autoencoder.cuda()
-        sub_autoencoder.to(device)
+        sub_autoencoder = sub_autoencoder.to(device)
         ae_optimizer = optimizer(sub_autoencoder)
         ae_scheduler = scheduler(ae_optimizer) if scheduler is not None else scheduler
         train(
@@ -296,11 +292,7 @@ def predict(dataset: torch.utils.data.Dataset,
             batch = batch[0]
         # if cuda:
         #     batch = batch.cuda(non_blocking=True)
-        if len(batch) == 2:
-            batch[0].to(device, non_blocking=True)
-            batch[1].to(device, non_blocking=True)
-        else:
-            batch.to(device, non_blocking=True)
+        batch = batch.to(device, non_blocking=True)
         batch = batch.squeeze(1).view(batch.size(0), -1)
         if encode:
             output = model.encode(batch)
